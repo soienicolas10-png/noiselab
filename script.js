@@ -3,8 +3,6 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 // buttons
-const startBtn = document.getElementById("start");
-const stopBtn = document.getElementById("stop");
 const captureBtn = document.getElementById("capture");
 
 // stackable filters
@@ -484,8 +482,6 @@ modeSelect.addEventListener("change", updateModeUI);
 
 // ---------- camera controls ----------
 
-startBtn.addEventListener("click", startCamera);
-stopBtn.addEventListener("click", stopCamera);
 captureBtn.addEventListener("click", openSavePrompt);
 
 async function startCamera() {
@@ -632,5 +628,8 @@ function saveImage() {
   link.click();
 }
 
-// initialize mode UI on load
-updateModeUI();
+// initialize mode UI and auto-start camera on load
+window.addEventListener("load", () => {
+  updateModeUI();
+  startCamera();
+});
