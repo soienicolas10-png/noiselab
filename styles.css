@@ -199,6 +199,15 @@ button.toggle:active {
   color: #555;
 }
 
+/* Mode-specific UI: hide all by default, show active one */
+.mode-config {
+  display: none;
+}
+
+.mode-config.active {
+  display: flex;
+}
+
 /* Modal */
 .modal-bg {
   position: fixed;

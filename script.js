@@ -47,6 +47,7 @@ const cacheHGridValue = document.getElementById("cacheHGridValue");
 // mode filters
 const modeSelect = document.getElementById("modeSelect");
 
+// per-mode sliders
 const asciiRange = document.getElementById("asciiRange");
 const asciiValue = document.getElementById("asciiValue");
 
@@ -61,6 +62,9 @@ const recursiveValue = document.getElementById("recursiveValue");
 
 const recursiveLatRange = document.getElementById("recursiveLatRange");
 const recursiveLatValue = document.getElementById("recursiveLatValue");
+
+// all mode config blocks
+const modeConfigs = document.querySelectorAll(".mode-config");
 
 // modal
 const modalBG = document.getElementById("modalBG");
@@ -463,6 +467,21 @@ recursiveLatRange.addEventListener("input", () => {
   recursiveLatValue.textContent = recursiveLatRange.value;
 });
 
+// ---------- mode UI visibility ----------
+
+function updateModeUI() {
+  const mode = modeSelect.value;
+  modeConfigs.forEach(el => {
+    if (el.dataset.mode === mode) {
+      el.classList.add("active");
+    } else {
+      el.classList.remove("active");
+    }
+  });
+}
+
+modeSelect.addEventListener("change", updateModeUI);
+
 // ---------- camera controls ----------
 
 startBtn.addEventListener("click", startCamera);
@@ -612,3 +631,6 @@ function saveImage() {
   link.href = canvas.toDataURL("image/png");
   link.click();
 }
+
+// initialize mode UI on load
+updateModeUI();
