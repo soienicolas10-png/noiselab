@@ -2,167 +2,378 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Camera – Noise Lab</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>NOISE LAB</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <!-- Custom cursor (desktop) -->
+  <div class="custom-cursor" id="customCursor"></div>
+
   <div class="app">
-    <h1>Camera – Noise Lab</h1>
-
-    <div class="preview">
-      <video id="video" playsinline></video>
-      <canvas id="canvas"></canvas>
+    <!-- TOP BAR WITH BIG KB DISPLAY -->
+    <div class="top-bar">
+      <div class="kb-display" id="kbDisplay">-- KB</div>
     </div>
 
-    <div class="row">
-      <div class="buttons">
-        <button id="capture" class="capture-big"></button>
-      </div>
-    </div>
+    <div class="preview-column">
+      <div class="preview">
+        <div class="preview-container">
+          <video id="video" playsinline autoplay muted webkit-playsinline></video>
+          <canvas id="canvas"></canvas>
 
-    <h2>Stackable filters (can combine)</h2>
-    <div class="stack-panel">
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableGray" />
-          Grayscale
-        </label>
-        <input type="range" id="grayRange" min="0" max="100" value="100" />
-        <span class="value-label" id="grayValue">100%</span>
-      </div>
+          <!-- Camera HUD overlay -->
+          <div class="camera-overlay">
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div>
+            <div class="corner corner-br"></div>
+            <div class="crosshair"></div>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableThreshold" />
-          Threshold
-        </label>
-        <input type="range" id="thRange" min="0" max="255" value="128" />
-        <span class="value-label" id="thValue">128</span>
-      </div>
+            <div class="rec-indicator" id="recIndicator">
+              <span class="rec-dot"></span>
+              <span>REC</span>
+              <span class="rec-size" id="recSize"></span>
+            </div>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enablePixel" />
-          Pixelate
-        </label>
-        <input type="range" id="pixelRange" min="2" max="40" value="12" />
-        <span class="value-label" id="pixelValue">12</span>
+            <!-- FPS indicator (bottom left, only in video mode, text only) -->
+            <div class="fps-indicator" id="fpsIndicator">
+              <span id="fpsValue">24 FPS</span>
+            </div>
+
+            <div class="exposure-meter">
+              <span>-2</span><span>·····</span><span>-1</span><span>·····</span>
+              <span>0</span><span>·····</span><span>1</span><span>·····</span><span>2</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableDither" />
-          Dithered
-        </label>
-        <input type="range" id="ditherRange" min="0" max="200" value="100" />
-        <span class="value-label" id="ditherValue">100</span>
-      </div>
+      <!-- Bottom controls -->
+      <div class="row">
+        <div class="buttons">
+          <!-- LEFT: Filters -->
+          <button id="filtersBtn" class="filters-toggle-btn">Filters</button>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableTexturing" />
-          Texturing
-        </label>
-        <input type="range" id="texRange" min="0" max="100" value="30" />
-        <span class="value-label" id="texValue">30</span>
-      </div>
+          <!-- CENTER: Shutter -->
+          <button id="capture" class="capture-big" aria-label="Capture"></button>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableCacheTrail" />
-          Cache Trail
-        </label>
-        <input type="range" id="cacheTrailRange" min="0" max="100" value="50" />
-        <span class="value-label" id="cacheTrailValue">50</span>
-      </div>
+          <!-- RIGHT: FPS + Mode toggle + Flip -->
+          <div class="right-buttons">
+            <!-- FPS button (only visible in video mode) -->
+            <button id="fpsBtn" class="fps-btn" aria-label="Change FPS">FPS</button>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableCacheCentral" />
-          Cache Central
-        </label>
-        <input type="range" id="cacheCentralRange" min="0" max="100" value="50" />
-        <span class="value-label" id="cacheCentralValue">50</span>
-      </div>
+            <!-- Group: Mode + Flip -->
+            <div class="mode-flip-group">
+              <!-- Mode toggle (video/camera icon) -->
+              <button id="modeToggleBtn" class="mode-toggle-btn" aria-label="Toggle Photo/Video Mode">
+                <!-- Video icon (default - photo mode) -->
+                <svg class="icon-video" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="5" width="14" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <path d="M16 9.5l5-3v11l-5-3v-5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                </svg>
+                <!-- Camera icon (when in video mode) -->
+                <svg class="icon-camera" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="2" y="6" width="20" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+                  <path d="M7 6V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>
 
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableCacheGrid" />
-          Cache Grid
-        </label>
-        <input type="range" id="cacheGridRange" min="0" max="100" value="50" />
-        <span class="value-label" id="cacheGridValue">50</span>
-      </div>
-
-      <div class="stack-filter">
-        <label>
-          <input type="checkbox" id="enableCacheHGrid" />
-          Cache Horizontal Grid
-        </label>
-        <input type="range" id="cacheHGridRange" min="0" max="100" value="50" />
-        <span class="value-label" id="cacheHGridValue">50</span>
-      </div>
-    </div>
-
-    <h2>Mode filter (one active)</h2>
-    <div class="stack-panel" id="modePanel">
-      <!-- Mode selector -->
-      <div class="stack-filter">
-        <label for="modeSelect">Mode</label>
-        <select id="modeSelect">
-          <option value="none">None</option>
-          <option value="ascii">ASCII</option>
-          <option value="pixelSort">Pixel Sorting</option>
-          <option value="platane">Platane (Mirror)</option>
-          <option value="recursive">Recursive</option>
-          <option value="recursiveLateral">Recursive Lateral</option>
-        </select>
-      </div>
-
-      <!-- Per-mode controls: only one visible at a time -->
-
-      <div class="stack-filter mode-config" data-mode="ascii">
-        <label>ASCII cell size</label>
-        <input type="range" id="asciiRange" min="6" max="20" value="10" />
-        <span class="value-label" id="asciiValue">10</span>
-      </div>
-
-      <div class="stack-filter mode-config" data-mode="pixelSort">
-        <label>PixelSort segment</label>
-        <input type="range" id="pixelSortRange" min="5" max="100" value="40" />
-        <span class="value-label" id="pixelSortValue">40</span>
-      </div>
-
-      <div class="stack-filter mode-config" data-mode="platane">
-        <label>Platane strength</label>
-        <input type="range" id="plataneRange" min="0" max="100" value="60" />
-        <span class="value-label" id="plataneValue">60</span>
-      </div>
-
-      <div class="stack-filter mode-config" data-mode="recursive">
-        <label>Recursive depth</label>
-        <input type="range" id="recursiveRange" min="1" max="6" value="3" />
-        <span class="value-label" id="recursiveValue">3</span>
-      </div>
-
-      <div class="stack-filter mode-config" data-mode="recursiveLateral">
-        <label>Recursive lateral depth</label>
-        <input type="range" id="recursiveLatRange" min="1" max="6" value="3" />
-        <span class="value-label" id="recursiveLatValue">3</span>
+              <!-- Flip (iOS only) -->
+              <button id="flipCamera" class="flip-btn" aria-label="Flip Camera">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 4L5 7L8 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 7h10a4 4 0 0 1 4 4v1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  <path d="M16 20l3-3l-3-3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M19 17H9a4 4 0 0 1-4-4v-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Save Image Popup -->
+  <!-- FILTERS OVERLAY -->
+  <div id="filtersOverlay" class="filters-overlay">
+    <div class="filters-inner">
+      <div class="filters-header">
+        <h2>NOISE LAB</h2>
+        <button id="closeFilters" class="close-filters">✕</button>
+      </div>
+
+      <h2 class="section-title">Filters</h2>
+      <div class="stack-panel">
+        <!-- Grayscale -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableGray" />
+            <span class="toggle-switch"></span>
+            Grayscale
+          </label>
+          <input type="range" id="grayRange" min="0" max="100" value="100" />
+          <span class="value-label" id="grayValue">100%</span>
+        </div>
+
+        <!-- Bitmap -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableBitmap" />
+            <span class="toggle-switch"></span>
+            Bitmap
+          </label>
+          <input type="range" id="bitmapRange" min="0" max="255" value="128" />
+          <span class="value-label" id="bitmapValue">128</span>
+        </div>
+
+        <!-- Dithered -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableDither" />
+            <span class="toggle-switch"></span>
+            Dithered
+          </label>
+          <input type="range" id="ditherRange" min="0" max="200" value="100" />
+          <span class="value-label" id="ditherValue">100</span>
+        </div>
+
+        <!-- Blur -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableBlur" />
+            <span class="toggle-switch"></span>
+            Blur
+          </label>
+          <input type="range" id="blurRange" min="1" max="20" value="5" />
+          <span class="value-label" id="blurValue">5</span>
+        </div>
+
+        <!-- Posterize -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePoster" />
+            <span class="toggle-switch"></span>
+            Posterize
+          </label>
+          <input type="range" id="posterRange" min="2" max="16" value="4" />
+          <span class="value-label" id="posterValue">4</span>
+        </div>
+
+        <!-- Voronoi -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableVoronoi" />
+            <span class="toggle-switch"></span>
+            Voronoi
+          </label>
+          <input type="range" id="voronoiRange" min="10" max="2000" value="40" />
+          <span class="value-label" id="voronoiValue">40</span>
+        </div>
+
+        <!-- Low Poly -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableLowpoly" />
+            <span class="toggle-switch"></span>
+            Low Poly
+          </label>
+          <input type="range" id="lowpolyRange" min="10" max="80" value="30" />
+          <span class="value-label" id="lowpolyValue">30</span>
+        </div>
+
+        <!-- Pointillism -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePoint" />
+            <span class="toggle-switch"></span>
+            Pointillism
+          </label>
+          <input type="range" id="pointRange" min="3" max="20" value="8" />
+          <span class="value-label" id="pointValue">8</span>
+        </div>
+
+        <!-- Pointillism Shape -->
+        <div class="stack-filter mode-config" data-mode="pointillism">
+          <label>Style</label>
+          <select id="pointShape">
+            <option value="circle">Circle</option>
+            <option value="rectangle">Rectangle</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </div>
+
+        <!-- Halftone (mono / RGB) -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableHalftone" />
+            <span class="toggle-switch"></span>
+            Halftone
+          </label>
+          <input type="range" id="halftoneRange" min="2" max="20" value="6" />
+          <span class="value-label" id="halftoneValue">6</span>
+        </div>
+
+        <div class="stack-filter mode-config" data-mode="halftone">
+          <label>Style</label>
+          <select id="halftoneType">
+            <option value="mono">Monochrome</option>
+            <option value="rgb">RGB Halftone</option>
+          </select>
+        </div>
+
+        <!-- Mezzotint -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableMezzo" />
+            <span class="toggle-switch"></span>
+            Mezzotint
+          </label>
+          <input type="range" id="mezzoRange" min="1" max="10" value="3" />
+          <span class="value-label" id="mezzoValue">3</span>
+        </div>
+
+        <!-- Contour -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableContour" />
+            <span class="toggle-switch"></span>
+            Contour
+          </label>
+          <input type="range" id="contourRange" min="1" max="100" value="30" />
+          <span class="value-label" id="contourValue">30</span>
+        </div>
+
+        <!-- Find Edges -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableEdges" />
+            <span class="toggle-switch"></span>
+            Find Edges
+          </label>
+          <input type="range" id="edgesRange" min="1" max="100" value="50" />
+          <span class="value-label" id="edgesValue">50</span>
+        </div>
+
+        <!-- Pixel Sorting -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePixelSort" />
+            <span class="toggle-switch"></span>
+            Pixel Sort
+          </label>
+          <input type="range" id="pixelSortRange" min="5" max="100" value="40" />
+          <span class="value-label" id="pixelSortValue">40</span>
+        </div>
+
+        <!-- Pixelate -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePixel" />
+            <span class="toggle-switch"></span>
+            Pixelate
+          </label>
+          <input type="range" id="pixelRange" min="2" max="40" value="12" />
+          <span class="value-label" id="pixelValue">12</span>
+        </div>
+
+        <!-- Pixel Stretch -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePixelStretch" />
+            <span class="toggle-switch"></span>
+            Pixel Stretch
+          </label>
+          <input type="range" id="pixelStretchRange" min="1" max="100" value="40" />
+          <span class="value-label" id="pixelStretchValue">40</span>
+        </div>
+
+        <!-- Abstract Blobs -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enableBlobs" />
+            <span class="toggle-switch"></span>
+            Abstract Blobs
+          </label>
+          <input type="range" id="blobsRange" min="4" max="60" value="16" />
+          <span class="value-label" id="blobsValue">16</span>
+        </div>
+
+        <!-- Palette-based reduction -->
+        <div class="stack-filter">
+          <label>
+            <input type="checkbox" id="enablePalette" />
+            <span class="toggle-switch"></span>
+            Palette Reduce
+          </label>
+          <input type="range" id="paletteRange" min="2" max="32" value="8" />
+          <span class="value-label" id="paletteValue">8</span>
+        </div>
+
+        <div class="stack-filter mode-config" data-mode="palette">
+          <label>Method</label>
+          <select id="paletteAlgo">
+            <option value="median">Median Cut</option>
+            <option value="kmeans">K-means</option>
+            <option value="octree">Octree</option>
+          </select>
+        </div>
+      </div>
+
+      <h2 class="section-title">Mode Filter</h2>
+      <div class="stack-panel">
+        <div class="stack-filter">
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect">
+            <option value="none">None</option>
+            <option value="ascii">ASCII</option>
+          </select>
+        </div>
+
+        <!-- ASCII Options -->
+        <div class="stack-filter mode-config" data-mode="ascii">
+          <label for="asciiVariant">Variant</label>
+          <select id="asciiVariant">
+            <option value="classic">Classic ASCII</option>
+            <option value="braille">Braille ⠁⠃⠉</option>
+            <option value="blocks">Blocks ▀▄█▌</option>
+            <option value="punctuation">Punctuation .,:;</option>
+            <option value="unicode">Unicode ░▒▓</option>
+            <option value="ansi">ANSI Color</option>
+          </select>
+        </div>
+
+        <div class="stack-filter mode-config" data-mode="ascii">
+          <label>Cell Size</label>
+          <input type="range" id="asciiRange" min="4" max="20" value="8" />
+          <span class="value-label" id="asciiValue">8</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Capture Modal -->
   <div class="modal-bg" id="modalBG">
     <div class="modal">
-      <img id="snapshot" alt="Snapshot preview" />
-      <p id="imageSizeLabel">Image Size: --</p>
-      <p>Do you want to save this image?</p>
+      <img id="snapshot" alt="Snapshot preview" style="display:none;" />
+      <video id="videoPreview" style="display:none;" controls></video>
+      <p class="image-size-big" id="imageSizeLabel">--</p>
+
       <div class="modal-buttons">
-        <button id="saveYes">Yes</button>
-        <button id="saveNo">No</button>
+        <button id="saveNo" class="cancel-btn">Cancel</button>
+
+        <!-- Image formats -->
+        <div id="imageFormatButtons" class="format-buttons">
+          <button id="saveJPEG" class="format-btn">JPEG</button>
+          <button id="savePNG" class="format-btn">PNG</button>
+          <button id="saveWEBP" class="format-btn">WEBP</button>
+        </div>
+
+        <!-- Video save -->
+        <button id="saveVideo" class="format-btn" style="display:none;">
+          Save Video
+        </button>
       </div>
     </div>
   </div>
