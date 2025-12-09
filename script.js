@@ -1,4 +1,6 @@
 // ===== DOM ELEMENTS =====
+const introScreen = document.getElementById("introScreen");
+const introStartBtn = document.getElementById("introStartBtn");
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -921,6 +923,17 @@ function applyAsciiMode(w, h) {
   }
 }
 
+// ===== INTRO SCREEN =====
+function dismissIntroScreen() {
+  if (!introScreen || introScreen.classList.contains("hidden")) return;
+  introScreen.classList.add("hidden");
+  // fully remove after fade-out
+  setTimeout(() => {
+    if (introScreen) introScreen.style.display = "none";
+  }, 400);
+}
+
+
 // ===== CAMERA CONTROL & MODE TOGGLE =====
 if (flipCameraBtn) {
   flipCameraBtn.addEventListener("click", async () => {
@@ -1439,6 +1452,24 @@ document.body.addEventListener('touchstart', function iosStart() {
 // ===== INIT =====
 document.addEventListener("DOMContentLoaded", () => {
   setupIOSFeatures();
+  // setupIOSInlineFilters(); // removed for now
+
+  // Intro screen interactions
+  if (introStartBtn) {
+    introStartBtn.addEventListener("click", dismissIntroScreen);
+  }
+
+  // Also dismiss on scroll / swipe down
+  window.addEventListener("wheel", (e) => {
+    if (e.deltaY > 0) {
+      dismissIntroScreen();
+    }
+  }, { passive: true });
+
+  window.addEventListener("touchmove", () => {
+    dismissIntroScreen();
+  }, { passive: true });
+
   updateModeUI();
   fpsBtn.textContent = fpsOptions[currentFpsIndex] + " FPS";
   fpsValue.textContent = fpsOptions[currentFpsIndex] + " FPS";

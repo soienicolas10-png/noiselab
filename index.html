@@ -10,6 +10,22 @@
   <!-- Custom cursor (desktop) -->
   <div class="custom-cursor" id="customCursor"></div>
 
+  <!-- INTRO / LANDING SCREEN -->
+  <div id="introScreen" class="intro-screen">
+    <!-- Centered content -->
+    <div class="intro-center">
+      <h1 class="intro-logo">NOISE LAB</h1>
+      <p class="intro-tagline">Capture more. Store less.</p>
+      <button id="introStartBtn" class="intro-btn">Get started</button>
+    </div>
+
+    <!-- Bottom message -->
+    <p class="intro-description">
+      This website was created to help you intentionally choose the file size of every image you take.
+    </p>
+  </div>
+
+  <!-- MAIN APP -->
   <div class="app">
     <!-- TOP BAR WITH BIG KB DISPLAY -->
     <div class="top-bar">
@@ -50,7 +66,7 @@
           <!-- LEFT: Filters -->
           <button id="filtersBtn" class="filters-toggle-btn">Filters</button>
 
-          <!-- CENTER: Shutter with KB label above (iOS only) -->
+          <!-- CENTER: Shutter -->
           <div class="shutter-wrapper">
             <button id="capture" class="capture-big" aria-label="Capture"></button>
           </div>
@@ -76,7 +92,6 @@
                   <path d="M7 6V5a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1" fill="none" stroke="currentColor" stroke-width="2"/>
                 </svg>
               </button>
-            
 
               <!-- Flip (iOS only) -->
               <button id="flipCamera" class="flip-btn" aria-label="Flip Camera">
@@ -101,6 +116,9 @@
 
     <!-- Side panel -->
     <aside class="filters-panel" role="dialog" aria-modal="true" aria-label="Noise Lab Filters">
+      <!-- TOP GRADIENT BAR -->
+      <div class="filters-top-bar"></div>
+
       <div class="filters-inner">
         <div class="filters-header">
           <h2>NOISE LAB</h2>
@@ -299,8 +317,8 @@
               <span class="toggle-switch"></span>
               Abstract Blobs
             </label>
-            <input type="range" id="blobsRange" min="4" max="60" value="16" />
-            <span class="value-label" id="blobsValue">16</span>
+              <input type="range" id="blobsRange" min="4" max="60" value="16" />
+              <span class="value-label" id="blobsValue">16</span>
           </div>
 
           <!-- Palette-based reduction -->
@@ -355,8 +373,8 @@
         </div>
       </div>
 
-      <!-- Fixed bottom bar with blur only (no button) -->
-       <div class="filters-bottom-bar"></div>
+      <!-- Bottom gradient bar -->
+      <div class="filters-bottom-bar"></div>
     </aside>
   </div>
 

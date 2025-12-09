@@ -13,6 +13,8 @@
 
 html,
 body {
+  font-family: "Helvetica", "Helvetica Neue", Helvetica, sans-serif;
+  font-weight: 400;
   margin: 0;
   height: 100vh;
   height: 100dvh;
@@ -47,6 +49,7 @@ body {
   transform: translate(-50%, -50%) scale(0.8);
 }
 
+/* APP LAYOUT */
 .app {
   background: #000;
   width: 100%;
@@ -83,6 +86,7 @@ h2 {
   color: #d80000;
 }
 
+/* PREVIEW COLUMN */
 .preview-column {
   flex: 1 1 auto;
   display: flex;
@@ -391,7 +395,7 @@ canvas.blur-enabled {
   transform: scale(0.9);
 }
 
-/* Shutter wrapper for KB label */
+/* Shutter wrapper */
 .shutter-wrapper {
   position: relative;
   display: flex;
@@ -399,8 +403,7 @@ canvas.blur-enabled {
   align-items: center;
 }
 
-
-/* CENTER shutter */
+/* Shutter */
 .capture-big {
   width: 62px;
   height: 62px;
@@ -485,9 +488,10 @@ canvas.blur-enabled {
 .filters-backdrop {
   position: absolute;
   inset: 0;
-  background: transparent; /* or remove this line entirely */
+  background: transparent;
 }
 
+/* Side panel */
 .filters-panel {
   position: absolute;
   top: 0;
@@ -500,6 +504,23 @@ canvas.blur-enabled {
   padding: 1.5rem 2rem 1.5rem 1.5rem;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top gradient strip */
+.filters-top-bar {
+  position: absolute;
+  left: -1.5rem;
+  right: -2rem;
+  top: 0;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    rgb(0,0,0),
+    rgba(0,0,0,0.3),
+    rgba(0,0,0,0)
+  );
+  pointer-events: none;
 }
 
 .filters-inner {
@@ -507,6 +528,7 @@ canvas.blur-enabled {
   overflow-y: auto;
   padding-right: 1rem;
   padding-bottom: 3.5rem;
+  position: relative;
 }
 
 .filters-header {
@@ -521,6 +543,10 @@ canvas.blur-enabled {
 .filters-header h2 {
   margin: 0;
   font-size: 1.2rem;
+  font-family: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 .close-filters {
@@ -541,10 +567,11 @@ canvas.blur-enabled {
   color: #d80000;
 }
 
+/* Bottom gradient bar */
 .filters-bottom-bar {
   position: relative;
   flex-shrink: 0;
-  height: 56px;
+  height: 0px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -555,9 +582,14 @@ canvas.blur-enabled {
   position: absolute;
   left: -1.5rem;
   right: -2rem;
-  top: -28px;
-  height: 28px;
-  background: linear-gradient(to bottom, transparent, #000);
+  top: -80px;
+  height: 80px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0),
+    rgba(0,0,0,0.3),
+    rgb(0,0,0)
+  );
   pointer-events: none;
 }
 
@@ -787,12 +819,110 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   transform: scale(0.95);
 }
 
-/* Mobile / iOS */
-@media (max-width: 768px) {
-  .filters-bottom-bar {
-    height: 48px;
+/* === INTRO / LANDING SCREEN === */
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #d80000;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.intro-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.intro-center {
+  text-align: center;
+  transform: translateY(-8%);
+  padding: 1.5rem;
+}
+
+.intro-logo {
+  font-family: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  margin: 0 0 0.2rem;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.intro-tagline {
+  margin: 0 0 2rem;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  font-weight: 400;
+  color: #d80000;
+}
+
+.intro-btn {
+  background: #ff0000;
+  color: #000;
+  border: none;
+  padding: 0.9rem 3rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 0;
+  text-transform: none;
+  letter-spacing: 0.03em;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  cursor: pointer;
+}
+
+.intro-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
+.intro-btn:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* Bottom intro description */
+.intro-description {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.9rem;
+  max-width: 100vw;      /* ⬅️ wide on all screens, including iOS */
+  text-align: center;
+  color: #d80000;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+
+/* Make sure custom cursor doesn’t hide the intro button on desktop */
+.intro-screen .intro-btn {
+  cursor: pointer;
+}
+
+/* Desktop-only typography boost inside filters overlay when open */
+@media (min-width: 769px) {
+  .filters-overlay.open .filters-panel,
+  .filters-overlay.open .filters-panel * {
+    font-size: 0.9rem;
+    font-weight: 350;
+    letter-spacing: 0.02em;
   }
 
+  .filters-overlay.open .section-title {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  .filters-overlay.open .stack-filter {
+    font-weight: 400;
+  }
+}
+
+/* Mobile / iOS */
+@media (max-width: 768px) {
   .custom-cursor {
     display: none;
   }
@@ -839,11 +969,6 @@ input[type="checkbox"]:checked + .toggle-switch::after {
 
   .buttons {
     max-width: 320px;
-  }
-
-  .shutter-kb-label {
-    font-size: 0.65rem;
-    margin-bottom: 4px;
   }
 
   .capture-big {
@@ -967,36 +1092,6 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     border-right: none;
     border-bottom: 1px solid rgba(216, 0, 0, 0.5);
   }
-/* iOS: filters panel pops from bottom */
-.ios .filters-panel {
-  top: auto;
-  bottom: 0;
-  width: 100%;
-  height: 40vh;            /* you already had this, keep or tweak */
-  border-bottom: none;
-  border-top: 1px solid rgba(216, 0, 0, 0.5);
-  transform: translateY(100%);
-  transition: transform 0.25s ease-out;
-}
-
-/* Slide in when overlay is open */
-.ios .filters-overlay.open .filters-panel {
-  transform: translateY(0);
-}
-
-/* Keep your existing iOS tweaks */
-.ios .filters-inner {
-  padding-bottom: 1rem;
-}
-
-.ios .filters-bottom-bar {
-  height: 10px;
-}
-
-.ios .filters-bottom-bar::before {
-  top: -16px;
-  height: 16px;
-}
 
   .filters-inner {
     padding-right: 0;
@@ -1053,8 +1148,29 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     font-size: 0.65rem;
   }
 
+  .filters-bottom-bar {
+    height: 0px;
+  }
+
+  .filters-bottom-bar::before {
+    top: -80px;
+    height: 80px;
+  }
+
+  /* iOS: filters panel pops from bottom */
   .ios .filters-panel {
+    top: auto;
+    bottom: 0;
+    width: 100%;
     height: 40vh;
+    border-bottom: none;
+    border-top: 1px solid rgba(216, 0, 0, 0.5);
+    transform: translateY(100%);
+    transition: transform 0.25s ease-out;
+  }
+
+  .ios .filters-overlay.open .filters-panel {
+    transform: translateY(0);
   }
 
   .ios .filters-inner {
@@ -1062,37 +1178,20 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   }
 
   .ios .filters-bottom-bar {
-    height: 10px;
+    height: 0px;
   }
 
   .ios .filters-bottom-bar::before {
-    top: -16px;
-    height: 16px;
+    top: -80px;
+    height: 80px;
+  }
+  .intro-description {
+    left: 0;
+    right: 0;
+    transform: none;         /* ⬅️ this is the key fix */
+    max-width: 95vw;         /* ⬅️ wide but with breathing room */
+    margin: 0 auto;
+    padding: 0 1.5rem;       /* slight spacing on left/right */
+    text-align: center;
   }
 }
-/* Desktop-only: increase typography inside filters overlay when open */
-@media (min-width: 769px) {
-  .filters-overlay.open .filters-panel,
-  .filters-overlay.open .filters-panel * {
-    font-size: 0.9rem;     /* slightly bigger */
-    font-weight: 350;       /* thicker */
-    letter-spacing: 0.02em; /* optional: cleaner bold look */
-  }
-
-  /* Optional: make section titles stronger */
-  .filters-overlay.open .section-title {
-    font-size: 1rem;
-    font-weight: 400;
-  }
-
-  /* Optional: make slider labels and toggle labels thicker */
-  .filters-overlay.open .stack-filter {
-    font-weight: 400;
-  }
-}
-
-  .filters-overlay.open .filters-header h2 {
-    font-size: 1.3rem;      /* bigger title */
-    font-weight: 400;     /* thicker / bold */
-    letter-spacing: 0.05em; /* optional */
-  }
