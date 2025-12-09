@@ -1,5 +1,5 @@
 :root {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Helvetica, sans-serif;
   font-weight: 300;
   color: #d80000;
   background: #000;
@@ -68,7 +68,6 @@ body {
   z-index: 5;
 }
 
-/* BIG KB DISPLAY AT TOP */
 .kb-display {
   font-size: 1.4rem;
   color: #d80000;
@@ -123,7 +122,11 @@ canvas {
 }
 
 video {
-  display: none; /* canvas is visible output */
+  display: none;
+}
+
+canvas.blur-enabled {
+  will-change: filter;
 }
 
 /* Camera Overlay */
@@ -209,9 +212,9 @@ video {
   display: none;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 600;
-  color: #fff;
+  color: #d80000;
 }
 
 .rec-indicator.recording {
@@ -237,32 +240,19 @@ video {
   51%, 100% { opacity: 0.3; }
 }
 
-/* FPS indicator (bottom left, text only) */
+/* FPS indicator */
 .fps-indicator {
   position: absolute;
   bottom: 15px;
   left: 15px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 400;
   color: #fff;
   display: none;
 }
 
 .fps-indicator.visible {
   display: block;
-}
-
-.exposure-meter {
-  position: absolute;
-  bottom: 50px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #fff;
-  font-family: monospace;
 }
 
 /* Bottom row */
@@ -324,14 +314,13 @@ video {
   gap: 0.5rem;
 }
 
-/* Group mode + flip side by side */
 .mode-flip-group {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* FPS button (only visible in video mode) */
+/* FPS button */
 .fps-btn {
   display: none;
   background: transparent;
@@ -359,7 +348,7 @@ video {
   transform: scale(0.9);
 }
 
-/* Mode toggle button (video/camera icon) */
+/* Mode toggle button */
 .mode-toggle-btn {
   width: 44px;
   height: 44px;
@@ -386,7 +375,6 @@ video {
   display: block;
 }
 
-/* When in video mode, show camera icon, hide video icon */
 .mode-toggle-btn.video-mode .icon-camera {
   display: block;
 }
@@ -395,7 +383,6 @@ video {
   display: none;
 }
 
-/* Hover: make icon bigger */
 .mode-toggle-btn:hover {
   transform: scale(1.15);
 }
@@ -403,6 +390,15 @@ video {
 .mode-toggle-btn:active {
   transform: scale(0.9);
 }
+
+/* Shutter wrapper for KB label */
+.shutter-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 
 /* CENTER shutter */
 .capture-big {
@@ -426,12 +422,10 @@ video {
   transform: scale(0.92);
 }
 
-/* Video mode - shutter becomes red */
 .capture-big.video-mode {
   background: #ff0000;
 }
 
-/* Recording state */
 .capture-big.recording {
   background: #000;
   position: relative;
@@ -449,7 +443,7 @@ video {
   border-radius: 50%;
 }
 
-/* Flip button – iOS only via .ios-visible */
+/* Flip button */
 .flip-btn {
   display: none;
   background: transparent;
@@ -476,30 +470,43 @@ video {
   transform: scale(0.9);
 }
 
-/* Filters Overlay */
+/* === FILTERS OVERLAY === */
 .filters-overlay {
-  display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: 400px;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  z-index: 50;
-  overflow-y: auto;
-  padding: 1.5rem 2rem 1.5rem 1.5rem;
-  border-right: 1px solid rgba(216, 0, 0, 0.3);
+  inset: 0;
+  display: none;
+  z-index: 100;
 }
 
 .filters-overlay.open {
   display: block;
 }
 
+.filters-backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent; /* or remove this line entirely */
+}
+
+.filters-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400px;
+  max-width: 100%;
+  height: 100%;
+  background: #000;
+  border-right: 1px solid rgba(216, 0, 0, 0.3);
+  padding: 1.5rem 2rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
 .filters-inner {
-  padding-bottom: 2rem;
+  flex: 1 1 auto;
+  overflow-y: auto;
   padding-right: 1rem;
+  padding-bottom: 3.5rem;
 }
 
 .filters-header {
@@ -525,17 +532,46 @@ video {
   line-height: 1;
 }
 
+.section-title {
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #d80000;
+}
+
+.filters-bottom-bar {
+  position: relative;
+  flex-shrink: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filters-bottom-bar::before {
+  content: "";
+  position: absolute;
+  left: -1.5rem;
+  right: -2rem;
+  top: -28px;
+  height: 28px;
+  background: linear-gradient(to bottom, transparent, #000);
+  pointer-events: none;
+}
+
 /* Toggles & sliders */
 .stack-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 1rem;
 }
 
 .stack-filter {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   font-size: 0.85rem;
   color: #d80000;
 }
@@ -632,16 +668,6 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   font-size: 0.85rem;
 }
 
-.section-title {
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #d80000;
-}
-
-/* Mode configs */
 .mode-config {
   display: none;
 }
@@ -674,15 +700,27 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   justify-content: center;
   width: 100%;
   height: 100%;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .modal img,
 .modal video {
   max-width: 100%;
-  max-height: 35vh;
+  max-height: 45vh;
   border-radius: 0.5rem;
   object-fit: contain;
   border: 2px solid #d80000;
+  display: none;
+}
+
+.modal img.visible,
+.modal video.visible {
+  display: block;
 }
 
 .image-size-big {
@@ -711,9 +749,18 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   border-radius: 999px;
   font-size: 0.9rem;
   font-weight: 500;
+  transition: all 0.15s ease;
 }
 
-/* Format buttons */
+.cancel-btn:hover {
+  background: #d80000;
+  color: #000;
+}
+
+.cancel-btn:active {
+  transform: scale(0.95);
+}
+
 .format-buttons {
   display: flex;
   gap: 0.6rem;
@@ -728,10 +775,24 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   font-size: 0.85rem;
   font-weight: 500;
   white-space: nowrap;
+  transition: all 0.15s ease;
 }
 
-/* Mobile / iOS adjustments */
+.format-btn:hover {
+  background: #ff1a1a;
+  transform: translateY(-1px);
+}
+
+.format-btn:active {
+  transform: scale(0.95);
+}
+
+/* Mobile / iOS */
 @media (max-width: 768px) {
+  .filters-bottom-bar {
+    height: 48px;
+  }
+
   .custom-cursor {
     display: none;
   }
@@ -780,6 +841,11 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     max-width: 320px;
   }
 
+  .shutter-kb-label {
+    font-size: 0.65rem;
+    margin-bottom: 4px;
+  }
+
   .capture-big {
     width: 54px;
     height: 54px;
@@ -793,12 +859,10 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     height: 22px;
   }
 
-  /* default mobile layout */
   .right-buttons {
     gap: 0.25rem;
   }
 
-  /* iOS only: FPS on top, mode+flip below side by side */
   .ios .right-buttons {
     flex-direction: column;
     align-items: flex-end;
@@ -837,6 +901,20 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   .filters-toggle-btn {
     font-size: 0.7rem;
     padding: 0.3rem 0.8rem;
+  }
+
+  .modal {
+    padding: 1rem;
+  }
+
+  .modal img,
+  .modal video {
+    max-height: 35vh;
+  }
+
+  .image-size-big {
+    font-size: 2.5rem;
+    margin: 0.75rem 0;
   }
 
   .modal-buttons {
@@ -881,23 +959,48 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     font-size: 10px;
   }
 
-  .exposure-meter {
-    display: none;
-  }
-
-  .filters-overlay {
+  .filters-panel {
     width: 100%;
     height: 33.33vh;
     bottom: auto;
-    background: rgba(0, 0, 0, 0.5);
+    padding: 0.75rem;
     border-right: none;
     border-bottom: 1px solid rgba(216, 0, 0, 0.5);
-    padding: 0.75rem;
   }
+/* iOS: filters panel pops from bottom */
+.ios .filters-panel {
+  top: auto;
+  bottom: 0;
+  width: 100%;
+  height: 40vh;            /* you already had this, keep or tweak */
+  border-bottom: none;
+  border-top: 1px solid rgba(216, 0, 0, 0.5);
+  transform: translateY(100%);
+  transition: transform 0.25s ease-out;
+}
+
+/* Slide in when overlay is open */
+.ios .filters-overlay.open .filters-panel {
+  transform: translateY(0);
+}
+
+/* Keep your existing iOS tweaks */
+.ios .filters-inner {
+  padding-bottom: 1rem;
+}
+
+.ios .filters-bottom-bar {
+  height: 10px;
+}
+
+.ios .filters-bottom-bar::before {
+  top: -16px;
+  height: 16px;
+}
 
   .filters-inner {
     padding-right: 0;
-    padding-bottom: 0.5rem;
+    padding-bottom: 3rem;
   }
 
   .filters-header {
@@ -912,7 +1015,7 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   .section-title {
     margin-top: 0.75rem;
     margin-bottom: 0.35rem;
-    font-size: 0.7rem;
+    font-size: 1rem;
   }
 
   .stack-panel {
@@ -920,13 +1023,15 @@ input[type="checkbox"]:checked + .toggle-switch::after {
   }
 
   .stack-filter {
-    font-size: 0.75rem;
-    gap: 0.35rem;
+    font-size: 1rem;
+    gap: 1rem;
+    font-weight: 400;
   }
 
   .stack-filter label {
     min-width: 85px;
-    gap: 0.35rem;
+    gap: 1rem;
+    font-weight: 400;
   }
 
   .toggle-switch {
@@ -947,4 +1052,47 @@ input[type="checkbox"]:checked + .toggle-switch::after {
     min-width: 28px;
     font-size: 0.65rem;
   }
+
+  .ios .filters-panel {
+    height: 40vh;
+  }
+
+  .ios .filters-inner {
+    padding-bottom: 1rem;
+  }
+
+  .ios .filters-bottom-bar {
+    height: 10px;
+  }
+
+  .ios .filters-bottom-bar::before {
+    top: -16px;
+    height: 16px;
+  }
 }
+/* Desktop-only: increase typography inside filters overlay when open */
+@media (min-width: 769px) {
+  .filters-overlay.open .filters-panel,
+  .filters-overlay.open .filters-panel * {
+    font-size: 0.9rem;     /* slightly bigger */
+    font-weight: 350;       /* thicker */
+    letter-spacing: 0.02em; /* optional: cleaner bold look */
+  }
+
+  /* Optional: make section titles stronger */
+  .filters-overlay.open .section-title {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+
+  /* Optional: make slider labels and toggle labels thicker */
+  .filters-overlay.open .stack-filter {
+    font-weight: 400;
+  }
+}
+
+  .filters-overlay.open .filters-header h2 {
+    font-size: 1.3rem;      /* bigger title */
+    font-weight: 400;     /* thicker / bold */
+    letter-spacing: 0.05em; /* optional */
+  }

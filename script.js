@@ -4,6 +4,7 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const customCursor = document.getElementById("customCursor");
 const kbDisplay = document.getElementById("kbDisplay");
+const shutterKbLabel = document.getElementById("shutterKbLabel");
 
 const captureBtn = document.getElementById("capture");
 const modeToggleBtn = document.getElementById("modeToggleBtn");
@@ -13,6 +14,8 @@ const fpsValue = document.getElementById("fpsValue");
 const filtersBtn = document.getElementById("filtersBtn");
 const flipCameraBtn = document.getElementById("flipCamera");
 const filtersOverlay = document.getElementById("filtersOverlay");
+const filtersPanel = filtersOverlay ? filtersOverlay.querySelector(".filters-panel") : null;
+const filtersBackdrop = filtersOverlay ? filtersOverlay.querySelector(".filters-backdrop") : null;
 const closeFilters = document.getElementById("closeFilters");
 const recIndicator = document.getElementById("recIndicator");
 const recSize = document.getElementById("recSize");
@@ -29,7 +32,7 @@ const paletteAlgoSelect = paletteAlgoSelectEl || { value: "median" }; // default
 const halftoneTypeSelectEl = document.getElementById("halftoneType");
 const halftoneTypeSelect = halftoneTypeSelectEl || { value: "mono" };
 
-// All filter controls (defensive: if element missing, we handle it)
+// All filter controls
 const filters = {
   gray:          { enable: "enableGray",          range: "grayRange",          value: "grayValue",          suffix: "%" },
   bitmap:        { enable: "enableBitmap",        range: "bitmapRange",        value: "bitmapValue" },
@@ -93,6 +96,9 @@ let currentFpsIndex = 2; // default 24 FPS
 // Recording size tracking
 let recordingSize = 0;
 
+// Current KB size for display
+let currentKBSize = "-- KB";
+
 // Image blobs for current capture
 let currentJpegBlob = null;
 let currentPngBlob  = null;
@@ -103,6 +109,10 @@ const offCanvas = document.createElement("canvas");
 const offCtx = offCanvas.getContext("2d");
 const tempCanvas = document.createElement("canvas");
 const tempCtx = tempCanvas.getContext("2d");
+
+// Snapshot canvas (for freezing frame)
+const snapshotCanvas = document.createElement("canvas");
+const snapshotCtx = snapshotCanvas.getContext("2d");
 
 // Voronoi points cache (cells stay stable while sliders unchanged)
 let voronoiPoints = [];
@@ -166,23 +176,48 @@ function setupIOSFeatures() {
   if (isIOS()) {
     if (flipCameraBtn) flipCameraBtn.classList.add("ios-visible");
     document.body.classList.add("ios");
-
-    // Close filters overlay when tapping outside (iOS)
-    document.addEventListener("click", (e) => {
-      if (!filtersOverlay.classList.contains("open")) return;
-      const inside = filtersOverlay.contains(e.target);
-      const onBtn = filtersBtn.contains(e.target);
-      if (!inside && !onBtn) {
-        filtersOverlay.classList.remove("open");
-      }
-    });
   }
 }
 
-// ===== UI EVENTS =====
-filtersBtn.addEventListener("click", () => filtersOverlay.classList.add("open"));
-closeFilters.addEventListener("click", () => filtersOverlay.classList.remove("open"));
+// ===== FILTERS OVERLAY OPEN/CLOSE =====
+function openFiltersOverlay() {
+  if (!filtersOverlay) return;
+  filtersOverlay.classList.add("open");
+  filtersOverlay.setAttribute("aria-hidden", "false");
+}
 
+function closeFiltersOverlay() {
+  if (!filtersOverlay) return;
+  filtersOverlay.classList.remove("open");
+  filtersOverlay.setAttribute("aria-hidden", "true");
+}
+
+// Open when user clicks the Filters button
+if (filtersBtn) {
+  filtersBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openFiltersOverlay();
+  });
+}
+
+// Close when user clicks the ✕ button
+if (closeFilters) {
+  closeFilters.addEventListener("click", (e) => {
+    e.stopPropagation();
+    closeFiltersOverlay();
+  });
+}
+
+// Close when clicking the backdrop (outside), NOT on touch
+if (filtersBackdrop) {
+  const backdropHandler = (e) => {
+    e.stopPropagation();
+    closeFiltersOverlay();
+  };
+  filtersBackdrop.addEventListener("mousedown", backdropHandler);
+}
+
+// ===== UI EVENTS =====
 Object.keys(filterEls).forEach(key => {
   const f = filterEls[key];
   if (f.range && f.valueEl) {
@@ -247,6 +282,29 @@ if (paletteAlgoSelectEl) {
   });
 }
 
+// ===== BLUR VIA CSS (iOS-SAFE) =====
+const blurFilter = filterEls.blur || null;
+
+function updateCanvasBlur() {
+  if (!blurFilter || !canvas) return;
+  const enabled = blurFilter.enable && blurFilter.enable.checked;
+  if (!enabled) {
+    canvas.style.filter = "";
+    canvas.classList.remove("blur-enabled");
+    return;
+  }
+  const radius = parseInt(blurFilter.range.value, 10) || 0;
+  canvas.classList.add("blur-enabled");
+  canvas.style.filter = `blur(${radius}px)`;
+}
+
+if (blurFilter && blurFilter.enable) {
+  blurFilter.enable.addEventListener("change", updateCanvasBlur);
+}
+if (blurFilter && blurFilter.range) {
+  blurFilter.range.addEventListener("input", updateCanvasBlur);
+}
+
 // ===== FILTER IMPLEMENTATIONS =====
 function applyGrayscale(data, intensity) {
   for (let i = 0; i < data.length; i += 4) {
@@ -295,7 +353,6 @@ function applyPosterize(data, levels) {
 }
 
 function applyPixelStretch(data, w, h, amount) {
-  // freeze pattern unless slider/resolution changes
   if (
     !pixelStretchRowStarts ||
     pixelStretchLastAmount !== amount ||
@@ -330,8 +387,6 @@ function applyPixelStretch(data, w, h, amount) {
 }
 
 function applyVoronoi(data, w, h, numPoints) {
-  // cells stable (same random points until slider changes),
-  // colors update every frame (using current data)
   const actualPoints = Math.max(5, Math.min(2000, numPoints | 0));
 
   if (voronoiPoints.length !== actualPoints || lastVoronoiCount !== actualPoints) {
@@ -380,7 +435,6 @@ function applyVoronoi(data, w, h, numPoints) {
 }
 
 function applyLowPoly(ctx, w, h, size) {
-  // freeze triangle layout until size/res changes
   if (
     !lowPolyPointsCache ||
     lowPolyLastSize !== size ||
@@ -632,12 +686,6 @@ function applyPixelSort(data, w, h, factor) {
       }
     }
   }
-}
-
-function applyBlur(ctx, w, h, radius) {
-  ctx.filter = `blur(${radius}px)`;
-  ctx.drawImage(video, 0, 0, w, h);
-  ctx.filter = 'none';
 }
 
 function applyPixelate(w, h, pixelSize) {
@@ -911,7 +959,7 @@ captureBtn.addEventListener("click", () => {
     if (isRecording) stopRecording();
     else startRecording();
   } else {
-    openSavePrompt();
+    capturePhoto();
   }
 });
 
@@ -1055,9 +1103,10 @@ function stopCamera() {
 let kbUpdateCounter = 0;
 
 function updateKBDisplay() {
-  // If recording video → show recording size
   if (isVideoMode && isRecording) {
-    kbDisplay.textContent = formatFileSize(recordingSize);
+    const sizeStr = formatFileSize(recordingSize);
+    kbDisplay.textContent = sizeStr;
+    if (shutterKbLabel) shutterKbLabel.textContent = sizeStr;
     return;
   }
 
@@ -1066,10 +1115,14 @@ function updateKBDisplay() {
 
   canvas.toBlob(blob => {
     if (!blob) {
-      kbDisplay.textContent = "-- KB";
+      currentKBSize = "-- KB";
+      kbDisplay.textContent = currentKBSize;
+      if (shutterKbLabel) shutterKbLabel.textContent = currentKBSize;
       return;
     }
-    kbDisplay.textContent = formatFileSize(blob.size);
+    currentKBSize = formatFileSize(blob.size);
+    kbDisplay.textContent = currentKBSize;
+    if (shutterKbLabel) shutterKbLabel.textContent = currentKBSize;
   }, "image/png");
 }
 
@@ -1086,11 +1139,7 @@ function drawLoop() {
   // Base draw
   ctx.drawImage(video, 0, 0, w, h);
 
-  // Blur first (uses video directly)
-  if (filterEls.blur.enable && filterEls.blur.enable.checked) {
-    applyBlur(ctx, w, h, parseInt(filterEls.blur.range.value, 10));
-  }
-
+  // Now read pixels from canvas
   let frame = ctx.getImageData(0, 0, w, h);
   let data = frame.data;
 
@@ -1146,12 +1195,10 @@ function drawLoop() {
       paletteParams.h !== h;
 
     if (needsNewPalette) {
-      // use current processed frame to build palette
       ctx.putImageData(frame, 0, 0);
       paletteCurrent = buildPaletteFromCanvas(w, h, colorsCount, algo);
       paletteParams = { colorsCount, algo, w, h };
 
-      // re-read frame (so we quantize the right thing)
       frame = ctx.getImageData(0, 0, w, h);
       data = frame.data;
     }
@@ -1206,51 +1253,95 @@ function formatFileSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
 
-function openSavePrompt() {
-  if (!streaming) return;
-  paused = true;
+function makeNoiseLabFilename(type, ext) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
 
-  const dataURL = canvas.toDataURL("image/png");
+  const date =
+    now.getFullYear() +
+    "-" + pad(now.getMonth() + 1) +
+    "-" + pad(now.getDate());
+
+  const time =
+    pad(now.getHours()) +
+    "-" + pad(now.getMinutes()) +
+    "-" + pad(now.getSeconds());
+
+  return `noiselab-${type}-${date}-${time}.${ext}`;
+}
+
+function downloadBlob(blob, filename) {
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = URL.createObjectURL(blob);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
+// Capture photo - freeze frame and show preview
+function capturePhoto() {
+  if (!streaming) return;
+  
+  // Freeze the current frame
+  paused = true;
+  
+  // Copy current canvas to snapshot canvas
+  snapshotCanvas.width = canvas.width;
+  snapshotCanvas.height = canvas.height;
+  snapshotCtx.drawImage(canvas, 0, 0);
+  
+  // Show preview in modal
+  const dataURL = snapshotCanvas.toDataURL("image/png");
   snapshotImg.src = dataURL;
   snapshotImg.style.display = "block";
   videoPreview.style.display = "none";
 
-  imageSizeLabel.textContent = "--";
-
-  formatButtonsContainer.style.display = "flex";
-  saveVideoBtn.style.display = "none";
-
+  // Reset blobs
   currentJpegBlob = null;
   currentPngBlob  = null;
   currentWebpBlob = null;
 
-  // PNG
-  canvas.toBlob(blob => {
+  // Set loading state
+  imageSizeLabel.textContent = "...";
+  saveJpegBtn.textContent = "JPEG";
+  savePngBtn.textContent = "PNG";
+  saveWebpBtn.textContent = "WEBP";
+  saveWebpBtn.style.display = "inline-block";
+
+  formatButtonsContainer.style.display = "flex";
+  saveVideoBtn.style.display = "none";
+
+  // Open modal immediately
+  modalBG.classList.add("open");
+
+  // Generate blobs from snapshot canvas (async, non-blocking)
+  snapshotCanvas.toBlob(blob => {
     if (!blob) return;
     currentPngBlob = blob;
     savePngBtn.textContent = "PNG · " + formatFileSize(blob.size);
-    imageSizeLabel.textContent = formatFileSize(blob.size);
+    // Set size label to PNG size initially
+    if (!currentJpegBlob) {
+      imageSizeLabel.textContent = formatFileSize(blob.size);
+    }
   }, "image/png");
 
-  // JPEG
-  canvas.toBlob(blob => {
+  snapshotCanvas.toBlob(blob => {
     if (!blob) return;
     currentJpegBlob = blob;
     saveJpegBtn.textContent = "JPEG · " + formatFileSize(blob.size);
+    imageSizeLabel.textContent = formatFileSize(blob.size);
   }, "image/jpeg", 0.9);
 
-  // WEBP
-  canvas.toBlob(blob => {
+  snapshotCanvas.toBlob(blob => {
     if (!blob) {
       saveWebpBtn.style.display = "none";
       return;
     }
     currentWebpBlob = blob;
-    saveWebpBtn.style.display = "inline-block";
     saveWebpBtn.textContent = "WEBP · " + formatFileSize(blob.size);
   }, "image/webp");
-
-  modalBG.classList.add("open");
 }
 
 function openVideoSavePrompt() {
@@ -1270,53 +1361,66 @@ function openVideoSavePrompt() {
   modalBG.classList.add("open");
 }
 
-function downloadBlob(blob, filename) {
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = URL.createObjectURL(blob);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+function closeModal() {
+  modalBG.classList.remove("open");
+  paused = false;
+  if (streaming) requestAnimationFrame(drawLoop);
 }
 
 // Modal buttons
-saveNo.addEventListener("click", () => {
-  modalBG.classList.remove("open");
-  paused = false;
-  if (streaming) requestAnimationFrame(drawLoop);
-});
+saveNo.addEventListener("click", closeModal);
 
 saveJpegBtn.addEventListener("click", () => {
-  if (!currentJpegBlob) return;
-  downloadBlob(currentJpegBlob, "noise-lab-image.jpg");
-  modalBG.classList.remove("open");
-  paused = false;
-  if (streaming) requestAnimationFrame(drawLoop);
+  if (!currentJpegBlob) {
+    // Generate on the fly if not ready
+    snapshotCanvas.toBlob(blob => {
+      if (!blob) return;
+      const fname = makeNoiseLabFilename("photo", "jpg");
+      downloadBlob(blob, fname);
+      closeModal();
+    }, "image/jpeg", 0.9);
+    return;
+  }
+  const fname = makeNoiseLabFilename("photo", "jpg");
+  downloadBlob(currentJpegBlob, fname);
+  closeModal();
 });
 
 savePngBtn.addEventListener("click", () => {
-  if (!currentPngBlob) return;
-  downloadBlob(currentPngBlob, "noise-lab-image.png");
-  modalBG.classList.remove("open");
-  paused = false;
-  if (streaming) requestAnimationFrame(drawLoop);
+  if (!currentPngBlob) {
+    snapshotCanvas.toBlob(blob => {
+      if (!blob) return;
+      const fname = makeNoiseLabFilename("photo", "png");
+      downloadBlob(blob, fname);
+      closeModal();
+    }, "image/png");
+    return;
+  }
+  const fname = makeNoiseLabFilename("photo", "png");
+  downloadBlob(currentPngBlob, fname);
+  closeModal();
 });
 
 saveWebpBtn.addEventListener("click", () => {
-  if (!currentWebpBlob) return;
-  downloadBlob(currentWebpBlob, "noise-lab-image.webp");
-  modalBG.classList.remove("open");
-  paused = false;
-  if (streaming) requestAnimationFrame(drawLoop);
+  if (!currentWebpBlob) {
+    snapshotCanvas.toBlob(blob => {
+      if (!blob) return;
+      const fname = makeNoiseLabFilename("photo", "webp");
+      downloadBlob(blob, fname);
+      closeModal();
+    }, "image/webp");
+    return;
+  }
+  const fname = makeNoiseLabFilename("photo", "webp");
+  downloadBlob(currentWebpBlob, fname);
+  closeModal();
 });
 
 saveVideoBtn.addEventListener("click", () => {
   if (!recordedBlob) return;
-  downloadBlob(recordedBlob, "noise-lab-video.webm");
-  modalBG.classList.remove("open");
-  paused = false;
-  if (streaming) requestAnimationFrame(drawLoop);
+  const fname = makeNoiseLabFilename("video", "webm");
+  downloadBlob(recordedBlob, fname);
+  closeModal();
 });
 
 // iOS: first touch to start video playback
@@ -1338,6 +1442,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateModeUI();
   fpsBtn.textContent = fpsOptions[currentFpsIndex] + " FPS";
   fpsValue.textContent = fpsOptions[currentFpsIndex] + " FPS";
+  updateCanvasBlur();
   setTimeout(startCamera, 100);
 });
 
